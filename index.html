@@ -387,7 +387,7 @@ class Expr {
 
 const EPS = 1e-9;
 
-const MAX_STATES_PER_INTERVAL = 250;
+const MAX_STATES_PER_INTERVAL = 1000;
 const MAX_ABS_VALUE = 1000000;
 
 // ----------------------------
@@ -608,6 +608,71 @@ if(expr.value >= 0){
 
     }
 }
+// sec
+
+{
+    const c = Math.cos(expr.value);
+
+    if(Math.abs(c) > EPS){
+
+        store(
+            map,
+            new Expr(
+                1 / c,
+                `sec(${expr.text})`,
+                expr.cost + 1
+            )
+        );
+
+    }
+}
+
+// cosec (csc)
+
+{
+    const s = Math.sin(expr.value);
+
+    if(Math.abs(s) > EPS){
+
+        store(
+            map,
+            new Expr(
+                1 / s,
+                `cosec(${expr.text})`,
+                expr.cost + 1
+            )
+        );
+
+    }
+}
+
+// cotan (cot)
+
+{
+    const t = Math.tan(expr.value);
+
+    if(Math.abs(t) > EPS){
+
+        store(
+            map,
+            new Expr(
+                1 / t,
+                `cotan(${expr.text})`,
+                expr.cost + 1
+            )
+        );
+
+    }
+}
+
+store(
+    map,
+    new Expr(
+        Math.trunc(expr.value),
+        `[${expr.text}]`,
+        expr.cost+1
+    )
+);
 
 }
 
