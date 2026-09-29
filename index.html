@@ -2,119 +2,112 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport"
+content="width=device-width,initial-scale=1">
+
 <title>334 Expression Solver</title>
 
 <style>
+
 :root{
-    --accent:#1a73e8;
-    --bg:#f4f8ff;
-    --panel:#ffffff;
+ --accent:#1a73e8;
+ --bg:#f3f8ff;
+ --card:#ffffff;
 }
 
 *{
-    box-sizing:border-box;
+ box-sizing:border-box;
 }
 
 body{
-    margin:0;
-    min-height:100vh;
-    background:var(--bg);
-    font-family:"Segoe UI",sans-serif;
-    display:flex;
-    justify-content:center;
-    align-items:center;
+ margin:0;
+ background:var(--bg);
+ font-family:"Segoe UI",sans-serif;
+ min-height:100vh;
+ display:flex;
+ justify-content:center;
+ align-items:center;
 }
 
 .container{
-    width:min(900px,95vw);
-    background:var(--panel);
-    border-radius:16px;
-    padding:32px;
-    box-shadow:0 10px 35px rgba(0,0,0,.12);
+ width:min(1000px,95vw);
+
+ background:var(--card);
+
+ border-radius:16px;
+
+ padding:30px;
+
+ box-shadow:
+ 0 10px 30px
+ rgba(0,0,0,.15);
 }
 
 h1{
-    margin-top:0;
-    color:var(--accent);
-}
-
-.desc{
-    color:#666;
-    margin-bottom:20px;
+ margin-top:0;
+ color:var(--accent);
 }
 
 .controls{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
+ display:flex;
+ gap:10px;
+ flex-wrap:wrap;
 }
 
 input{
-    flex:1;
-    min-width:180px;
-    padding:12px;
-    font-size:18px;
+ font-size:18px;
+ padding:10px;
 }
 
 button{
-    border:none;
-    background:var(--accent);
-    color:white;
-    padding:12px 20px;
-    cursor:pointer;
-    border-radius:8px;
-    font-size:18px;
+ border:none;
+ border-radius:8px;
+
+ background:var(--accent);
+ color:white;
+
+ padding:
+ 10px
+ 20px;
+
+ cursor:pointer;
 }
 
 button:hover{
-    background:#165dc0;
+ filter:brightness(.95);
 }
 
-.options{
-    margin-top:16px;
-    display:flex;
-    gap:20px;
-    flex-wrap:wrap;
+.result{
+ margin-top:20px;
+
+ background:#eef5ff;
+
+ border-left:
+ 5px solid
+ var(--accent);
+
+ padding:16px;
+
+ border-radius:10px;
 }
 
-.card{
-    margin-top:24px;
-    background:#eef5ff;
-    border-left:5px solid var(--accent);
-    padding:16px;
-    border-radius:8px;
+#value{
+ font-size:34px;
+ font-weight:bold;
+ color:var(--accent);
 }
 
-.value{
-    font-size:32px;
-    font-weight:bold;
-    color:var(--accent);
+#expr{
+ margin-top:10px;
+ font-size:24px;
+ word-break:break-all;
 }
 
-.expr{
-    font-size:24px;
-    margin-top:10px;
-    word-break:break-word;
+#meta{
+ margin-top:10px;
+ color:#666;
 }
 
-.meta{
-    margin-top:10px;
-    font-size:14px;
-    color:#666;
-}
-
-.loading{
-    color:#ff9800;
-}
-
-.error{
-    color:#c62828;
-}
-
-.success{
-    color:#2e7d32;
-}
 </style>
 </head>
 <body>
@@ -123,25 +116,20 @@ button:hover{
 
 <h1>334 Expression Solver</h1>
 
-<div class="desc">
-3,3,4 を順番通り使用して自然数を表現します。
-n-Bag対応。
-</div>
-
 <div class="controls">
 
 <input
-id="target"
-type="number"
-min="0"
-placeholder="自然数を入力">
+ id="target"
+ type="number"
+ min="0"
+ placeholder="自然数">
 
 <input
-id="bags"
-type="number"
-min="1"
-max="5"
-value="1">
+ id="bags"
+ type="number"
+ value="1"
+ min="1"
+ max="4">
 
 <button onclick="runSearch()">
 検索
@@ -149,46 +137,21 @@ value="1">
 
 </div>
 
-<div class="options">
-
-<label>
-<input type="checkbox"
-id="allowConcat"
-checked>
-連結(33,334)
-</label>
-
-<label>
-<input type="checkbox"
-id="allowFactorial"
-checked>
-階乗
-</label>
-
-<label>
-<input type="checkbox"
-id="allowPower"
-checked>
-累乗
-</label>
-
-</div>
-
-<div class="card">
+<div class="result">
 
 <div id="status">
 待機中
 </div>
 
-<div class="value" id="value">
+<div id="value">
 -
 </div>
 
-<div class="expr" id="expr">
+<div id="expr">
 式はここに表示されます
 </div>
 
-<div class="meta" id="meta">
+<div id="meta">
 -
 </div>
 
@@ -198,869 +161,976 @@ checked>
 
 <script>
 
-// ======================================
-// Unicode上付き文字
-// ======================================
+const EPS = 1e-9;
+
+const MAX_ABS_VALUE =
+1000000;
+
+const MAX_STATES_PER_INTERVAL =
+800;
+
+class Expr{
+
+ constructor(
+  value,
+  text,
+  cost
+ ){
+
+  this.value =
+  value;
+
+  this.text =
+  text;
+
+  this.cost =
+  cost;
+
+ }
+
+}
 
 const SUPER = {
-    "0":"⁰",
-    "1":"¹",
-    "2":"²",
-    "3":"³",
-    "4":"⁴",
-    "5":"⁵",
-    "6":"⁶",
-    "7":"⁷",
-    "8":"⁸",
-    "9":"⁹",
-    "-":"⁻"
+
+ "0":"⁰",
+ "1":"¹",
+ "2":"²",
+ "3":"³",
+ "4":"⁴",
+ "5":"⁵",
+ "6":"⁶",
+ "7":"⁷",
+ "8":"⁸",
+ "9":"⁹",
+
+ "-":"⁻"
+
+};
+
+const SUB = {
+
+ "0":"₀",
+ "1":"₁",
+ "2":"₂",
+ "3":"₃",
+ "4":"₄",
+ "5":"₅",
+ "6":"₆",
+ "7":"₇",
+ "8":"₈",
+ "9":"₉",
+
+ "-":"₋"
+
 };
 
 function superscript(n){
 
-    return String(n)
-        .split("")
-        .map(c=>SUPER[c]||c)
-        .join("");
+ return String(n)
+ .split("")
+ .map(
+  x =>
+  SUPER[x] || x
+ )
+ .join("");
+
 }
-const SUB = {
-    "0":"₀",
-    "1":"₁",
-    "2":"₂",
-    "3":"₃",
-    "4":"₄",
-    "5":"₅",
-    "6":"₆",
-    "7":"₇",
-    "8":"₈",
-    "9":"₉",
-    "-":"₋"
-};
 
 function subscript(n){
 
-    return String(n)
-        .split("")
-        .map(
-            c => SUB[c] || c
-        )
-        .join("");
+ return String(n)
+ .split("")
+ .map(
+  x =>
+  SUB[x] || x
+ )
+ .join("");
 
 }
-
-
-// ======================================
-// HTML表示
-// ======================================
-
-function showResult(value,expr,info){
-
-    document.getElementById("value")
-        .textContent = value;
-
-    document.getElementById("expr")
-        .textContent = expr;
-
-    document.getElementById("meta")
-        .textContent = info;
-
-    document.getElementById("status")
-        .innerHTML =
-        '<span class="success">発見</span>';
-}
-
-function showError(msg){
-
-    document.getElementById("status")
-        .innerHTML =
-        '<span class="error">エラー</span>';
-
-    document.getElementById("expr")
-        .textContent = msg;
-}
-
-function showLoading(){
-
-    document.getElementById("status")
-        .innerHTML =
-        '<span class="loading">探索中...</span>';
-
-    document.getElementById("expr")
-        .textContent =
-        "式を探索しています...";
-}
-
-// ======================================
-// Bag生成
-// ======================================
-
-function createDigits(bagCount){
-
-    const arr = [];
-
-    for(let i=0;i<bagCount;i++){
-
-        arr.push("3");
-        arr.push("3");
-        arr.push("4");
-
-    }
-
-    return arr;
-}
-
-// ======================================
-// 検索開始
-// ======================================
-
-function runSearch(){
-
-    const target =
-        Number(
-            document.getElementById("target").value
-        );
-
-    const bags =
-        Number(
-            document.getElementById("bags").value
-        );
-
-    if(!Number.isInteger(target) || target < 0){
-
-        showError(
-            "自然数を入力してください"
-        );
-
-        return;
-    }
-
-    showLoading();
-
-    const digits =
-        createDigits(bags);
-
-    setTimeout(()=>{
-
-        // Part2で実装
-        const answers =
-            solve334(
-                target,
-                digits
-            );
-
-        if(answer){
-
-            showResult(
-                answer.value,
-                answer.expr,
-                `Bag数: ${bags}`
-            );
-
-        }else{
-
-            showError(
-                "探索範囲内では見つかりませんでした"
-            );
-        }
-
-    },10);
-}
-
-// ======================================
-// Part2で実装する本体
-// ======================================
-// ======================================
-// Part2
-// ======================================
-
-class Expr {
-
-    constructor(value,text,cost){
-
-        this.value = value;
-        this.text = text;
-        this.cost = cost;
-
-    }
-
-}
-
-const EPS = 1e-9;
-
-const MAX_STATES_PER_INTERVAL = 1000;
-const MAX_ABS_VALUE = 1000000;
-
-// ----------------------------
-
-function factorial(n){
-
-    if(
-        !Number.isInteger(n) ||
-        n < 0 ||
-        n > 8
-    ){
-        return null;
-    }
-
-    let r = 1;
-
-    for(let i=2;i<=n;i++){
-
-        r *= i;
-
-    }
-
-    return r;
-
-}
-
-// ----------------------------
 
 function normalize(v){
 
-    if(!Number.isFinite(v))
-        return null;
+ if(
+  !Number.isFinite(v)
+ ){
+  return null;
+ }
 
-    if(Math.abs(v) > MAX_ABS_VALUE)
-        return null;
+ if(
+  Math.abs(v)
+  >
+  MAX_ABS_VALUE
+ ){
+  return null;
+ }
 
-    return Math.round(v*1e8)/1e8;
+ return Math.round(
+  v * 1e8
+ ) / 1e8;
 
 }
-
-// ----------------------------
 
 function key(v){
 
-    return String(
-        normalize(v)
-    );
+ return String(
+  normalize(v)
+ );
 
 }
 
-// ----------------------------
+function factorial(n){
+
+ if(
+  !Number.isInteger(n)
+ ){
+  return null;
+ }
+
+ if(
+  n < 0 ||
+  n > 8
+ ){
+  return null;
+ }
+
+ let r = 1;
+
+ for(
+  let i=2;
+  i<=n;
+  i++
+ ){
+
+  r *= i;
+
+ }
+
+ return r;
+
+}
+
+function wrap(s){
+
+ if(
+  /^[0-9]+$/.test(s)
+ ){
+  return s;
+ }
+
+ return "(" + s + ")";
+
+}
+
+function createDigits(
+ bagCount
+){
+
+ const arr = [];
+
+ for(
+  let i=0;
+  i<bagCount;
+  i++
+ ){
+
+  arr.push("3");
+  arr.push("3");
+  arr.push("4");
+
+ }
+
+ return arr;
+
+}
 
 function store(map,e){
 
-    const k = key(e.value);
+ const k = key(e.value);
 
-    if(k === "null")
-        return;
+ if(k==="null"){
+  return;
+ }
 
-    if(
-        !map.has(k) ||
-        map.get(k).cost > e.cost
-    ){
+ if(
+  !map.has(k)
+  ||
+  map.get(k).cost > e.cost
+ ){
 
-        map.set(k,e);
+  map.set(k,e);
 
-    }
+ }
 
-    if(
-        map.size >
-        MAX_STATES_PER_INTERVAL
-    ){
+ if(
+  map.size >
+  MAX_STATES_PER_INTERVAL
+ ){
 
-        const arr =
-            [...map.values()]
-            .sort(
-                (a,b)=>
-                a.cost-b.cost
-            )
-            .slice(
-                0,
-                MAX_STATES_PER_INTERVAL
-            );
+  const best =
+   [...map.values()]
+   .sort(
+    (a,b)=>
+    a.cost-b.cost
+   )
+   .slice(
+    0,
+    MAX_STATES_PER_INTERVAL
+   );
 
-        map.clear();
+  map.clear();
 
-        for(const x of arr){
+  for(
+   const v
+   of best
+  ){
 
-            map.set(
-                key(x.value),
-                x
-            );
+   map.set(
+    key(v.value),
+    v
+   );
 
-        }
+  }
 
-    }
-
-}
-
-// ----------------------------
-
-function unary(expr,map){
-
-    // factorial
-
-    const f =
-        factorial(
-            expr.value
-        );
-
-    if(f !== null){
-
-        store(
-            map,
-            new Expr(
-                f,
-                `(${expr.text})!`,
-                expr.cost+1
-            )
-        );
-
-    }
-
-    // floor
-
-    store(
-        map,
-        new Expr(
-            Math.floor(
-                expr.value
-            ),
-            `⌊${expr.text}⌋`,
-            expr.cost+1
-        )
-    );
-
-    // ceil
-
-    store(
-        map,
-        new Expr(
-            Math.ceil(
-                expr.value
-            ),
-            `⌈${expr.text}⌉`,
-            expr.cost+1
-        )
-    );
-// √
-
-if(expr.value >= 0){
-
-    store(
-        map,
-        new Expr(
-            Math.sqrt(expr.value),
-            `√(${expr.text})`,
-            expr.cost + 1
-        )
-    );
+ }
 
 }
 
-// sin
+// ------------------
+// 単項演算
+// ------------------
 
-{
-    const v =
-        Math.sin(
-            expr.value
-        );
+function unary(
+ expr,
+ map
+){
 
-    store(
-        map,
-        new Expr(
-            v,
-            `sin(${expr.text})`,
-            expr.cost + 1
-        )
-    );
-}
+ const f =
+  factorial(
+   expr.value
+  );
 
-// cos
+ if(f!==null){
 
-{
-    const v =
-        Math.cos(
-            expr.value
-        );
+  store(
+   map,
+   new Expr(
+    f,
+    `(${expr.text})!`,
+    expr.cost+1
+   )
+  );
 
-    store(
-        map,
-        new Expr(
-            v,
-            `cos(${expr.text})`,
-            expr.cost + 1
-        )
-    );
-}
+ }
 
-// tan
+ // √
 
-{
-    const v =
-        Math.tan(
-            expr.value
-        );
+ if(expr.value>=0){
 
-    if(Number.isFinite(v)){
+  store(
+   map,
+   new Expr(
+    Math.sqrt(
+     expr.value
+    ),
+    `√(${expr.text})`,
+    expr.cost+1
+   )
+  );
 
-        store(
-            map,
-            new Expr(
-                v,
-                `tan(${expr.text})`,
-                expr.cost + 1
-            )
-        );
+ }
 
-    }
-}
-// sec
+ // floor
 
-{
-    const c = Math.cos(expr.value);
+ store(
+  map,
+  new Expr(
+   Math.floor(
+    expr.value
+   ),
+   `⌊${expr.text}⌋`,
+   expr.cost+1
+  )
+ );
 
-    if(Math.abs(c) > EPS){
+ // ceil
 
-        store(
-            map,
-            new Expr(
-                1 / c,
-                `sec(${expr.text})`,
-                expr.cost + 1
-            )
-        );
+ store(
+  map,
+  new Expr(
+   Math.ceil(
+    expr.value
+   ),
+   `⌈${expr.text}⌉`,
+   expr.cost+1
+  )
+ );
 
-    }
-}
+ // ガウス
 
-// cosec (csc)
+ store(
+  map,
+  new Expr(
+   Math.floor(
+    expr.value
+   ),
+   `[${expr.text}]`,
+   expr.cost+1
+  )
+ );
 
-{
-    const s = Math.sin(expr.value);
+ // sin
 
-    if(Math.abs(s) > EPS){
+ {
+  const v =
+   Math.sin(
+    expr.value
+   );
 
-        store(
-            map,
-            new Expr(
-                1 / s,
-                `cosec(${expr.text})`,
-                expr.cost + 1
-            )
-        );
+  store(
+   map,
+   new Expr(
+    v,
+    `sin(${expr.text})`,
+    expr.cost+1
+   )
+  );
+ }
 
-    }
-}
+ // cos
 
-// cotan (cot)
+ {
+  const v =
+   Math.cos(
+    expr.value
+   );
 
-{
-    const t = Math.tan(expr.value);
+  store(
+   map,
+   new Expr(
+    v,
+    `cos(${expr.text})`,
+    expr.cost+1
+   )
+  );
+ }
 
-    if(Math.abs(t) > EPS){
+ // tan
 
-        store(
-            map,
-            new Expr(
-                1 / t,
-                `cotan(${expr.text})`,
-                expr.cost + 1
-            )
-        );
+ {
+  const v =
+   Math.tan(
+    expr.value
+   );
 
-    }
-}
+  if(
+   Number.isFinite(v)
+  ){
 
-store(
+   store(
     map,
     new Expr(
-        Math.trunc(expr.value),
-        `[${expr.text}]`,
-        expr.cost+1
+     v,
+     `tan(${expr.text})`,
+     expr.cost+1
     )
-);
+   );
+
+  }
+
+ }
+
+ // sec
+
+ {
+  const c =
+   Math.cos(
+    expr.value
+   );
+
+  if(
+   Math.abs(c)
+   > EPS
+  ){
+
+   store(
+    map,
+    new Expr(
+     1/c,
+     `sec(${expr.text})`,
+     expr.cost+1
+    )
+   );
+
+  }
+
+ }
+
+ // csc
+
+ {
+  const s =
+   Math.sin(
+    expr.value
+   );
+
+  if(
+   Math.abs(s)
+   > EPS
+  ){
+
+   store(
+    map,
+    new Expr(
+     1/s,
+     `csc(${expr.text})`,
+     expr.cost+1
+    )
+   );
+
+  }
+
+ }
+
+ // cot
+
+ {
+  const t =
+   Math.tan(
+    expr.value
+   );
+
+  if(
+   Math.abs(t)
+   > EPS
+  ){
+
+   store(
+    map,
+    new Expr(
+     1/t,
+     `cot(${expr.text})`,
+     expr.cost+1
+    )
+   );
+
+  }
+
+ }
 
 }
 
-// ----------------------------
+// ------------------
+// 二項演算
+// ------------------
 
-function binary(A,B,map){
-
-    store(
-        map,
-        new Expr(
-            A.value+B.value,
-            `(${A.text}+${B.text})`,
-            A.cost+B.cost+1
-        )
-    );
-
-    store(
-        map,
-        new Expr(
-            A.value-B.value,
-            `(${A.text}-${B.text})`,
-            A.cost+B.cost+1
-        )
-    );
-
-    store(
-        map,
-        new Expr(
-            A.value*B.value,
-            `(${A.text}×${B.text})`,
-            A.cost+B.cost+1
-        )
-    );
-
-    if(
-        Math.abs(B.value)
-        > EPS
-    ){
-
-        store(
-            map,
-            new Expr(
-                A.value/B.value,
-                `(${A.text}÷${B.text})`,
-                A.cost+B.cost+1
-            )
-        );
-
-        store(
-            map,
-            new Expr(
-                A.value%B.value,
-                `(${A.text}%${B.text})`,
-                A.cost+B.cost+1
-            )
-        );
-
-    }
-
-    // 累乗
-
-    if(
-        document
-        .getElementById(
-            "allowPower"
-        )
-        .checked
-    ){
-
-        if(
-            Number.isInteger(
-                B.value
-            ) &&
-            Math.abs(
-                B.value
-            ) <= 6
-        ){
-
-            const p =
-                A.value **
-                B.value;
-
-            const exp =
-                superscript(
-                    B.value
-                );
-
-            store(
-                map,
-                new Expr(
-                    p,
-                    `${A.text}${exp}`,
-                    A.cost+
-                    B.cost+1
-                )
-            );
-
-        }
-
-    }
-// 対数
-
-if(
-    A.value > 0 &&
-    B.value > 0 &&
-    Math.abs(A.value - 1) > EPS
+function binary(
+ A,
+ B,
+ map
 ){
 
-    const v =
-        Math.log(B.value)
-        /
-        Math.log(A.value);
+ store(
+  map,
+  new Expr(
+   A.value+B.value,
+   `(${A.text}+${B.text})`,
+   A.cost+B.cost+1
+  )
+ );
 
-    store(
-        map,
-        new Expr(
-            v,
-            `log${subscript(A.text)}(${B.text})`,
-            A.cost + B.cost + 1
-        )
-    );
+ store(
+  map,
+  new Expr(
+   A.value-B.value,
+   `(${A.text}-${B.text})`,
+   A.cost+B.cost+1
+  )
+ );
+
+ store(
+  map,
+  new Expr(
+   A.value*B.value,
+   `(${A.text}×${B.text})`,
+   A.cost+B.cost+1
+  )
+ );
+
+ if(
+  Math.abs(B.value)
+  > EPS
+ ){
+
+  store(
+   map,
+   new Expr(
+    A.value/B.value,
+    `(${A.text}÷${B.text})`,
+    A.cost+B.cost+1
+   )
+  );
+
+  store(
+   map,
+   new Expr(
+    A.value%B.value,
+    `(${A.text}%${B.text})`,
+    A.cost+B.cost+1
+   )
+  );
+
+ }
+
+ // 累乗
+
+ if(
+  Number.isInteger(
+   B.value
+  )
+  &&
+  Math.abs(
+   B.value
+  ) <= 6
+ ){
+
+  store(
+   map,
+   new Expr(
+    A.value**
+    B.value,
+    `${wrap(A.text)}${superscript(B.value)}`,
+    A.cost+
+    B.cost+1
+   )
+  );
+
+ }
+
+ // n乗根
+
+ if(
+  Number.isInteger(
+   A.value
+  )
+  &&
+  A.value > 1
+  &&
+  B.value >= 0
+ ){
+
+  store(
+   map,
+   new Expr(
+    Math.pow(
+     B.value,
+     1/A.value
+    ),
+    `${subscript(A.value)}√(${B.text})`,
+    A.cost+
+    B.cost+1
+   )
+  );
+
+ }
+
+ // 対数
+
+ if(
+  A.value > 0
+  &&
+  B.value > 0
+  &&
+  Math.abs(
+   A.value-1
+  ) > EPS
+ ){
+
+  store(
+   map,
+   new Expr(
+    Math.log(
+     B.value
+    )
+    /
+    Math.log(
+     A.value
+    ),
+    `log${subscript(A.text)}(${B.text})`,
+    A.cost+
+    B.cost+1
+   )
+  );
+
+ }
 
 }
-if(
-
-    Number.isInteger(A.value)
-    &&
-    A.value > 1
-    &&
-    B.value >= 0
-
-){
-
-    const root =
-        Math.pow(
-            B.value,
-            1 / A.value
-        );
-
-    store(
-        map,
-        new Expr(
-            root,
-            `${subscript(A.value)}√(${B.text})`,
-            A.cost+B.cost+1
-        )
-    );
-
-}
-
-}
-
-// ----------------------------
+// ------------------
+// メイン探索
+// ------------------
 
 function solve334(
-    target,
+ target,
+ digits
+){
+
+ const N =
+  digits.length;
+
+ const dp =
+  Array.from(
+   {length:N},
+   ()=>Array(N)
+  );
+
+ // 単体
+
+ for(
+  let i=0;
+  i<N;
+  i++
+ ){
+
+  dp[i][i] =
+   new Map();
+
+  store(
+   dp[i][i],
+   new Expr(
+    Number(
+     digits[i]
+    ),
+    digits[i],
+    0
+   )
+  );
+
+ }
+
+ // 連結
+
+ for(
+  let len=2;
+  len<=N;
+  len++
+ ){
+
+  for(
+   let l=0;
+   l+len-1<N;
+   l++
+  ){
+
+   const r =
+    l+len-1;
+
+   if(
+    !dp[l][r]
+   ){
+
+    dp[l][r] =
+     new Map();
+
+   }
+
+   const concat =
     digits
-){
-
-    const N =
-        digits.length;
-
-    const dp =
-        Array.from(
-            {length:N},
-            ()=>Array(N)
-        );
-
-    // ------------------------
-    // 単体
-    // ------------------------
-
-    for(
-        let i=0;
-        i<N;
-        i++
-    ){
-
-        dp[i][i] =
-            new Map();
-
-        const value =
-            Number(
-                digits[i]
-            );
-
-        store(
-            dp[i][i],
-            new Expr(
-                value,
-                digits[i],
-                0
-            )
-        );
-
-    }
-
-    // ------------------------
-    // 連結
-    // ------------------------
-
-    if(
-        document
-        .getElementById(
-            "allowConcat"
-        )
-        .checked
-    ){
-
-        for(
-            let len=2;
-            len<=N;
-            len++
-        ){
-
-            for(
-                let l=0;
-                l+len-1<N;
-                l++
-            ){
-
-                const r =
-                    l+len-1;
-
-                if(
-                    !dp[l][r]
-                ){
-
-                    dp[l][r]
-                        = new Map();
-
-                }
-
-                const txt =
-                    digits
-                    .slice(
-                        l,
-                        r+1
-                    )
-                    .join("");
-
-                store(
-                    dp[l][r],
-                    new Expr(
-                        Number(
-                            txt
-                        ),
-                        txt,
-                        0
-                    )
-                );
-
-            }
-
-        }
-
-    }
-
-    // ------------------------
-    // 区間DP
-    // ------------------------
-
-    for(
-        let len=2;
-        len<=N;
-        len++
-    ){
-
-        for(
-            let l=0;
-            l+len-1<N;
-            l++
-        ){
-
-            const r =
-                l+len-1;
-
-            if(
-                !dp[l][r]
-            ){
-
-                dp[l][r]
-                    = new Map();
-
-            }
-
-            for(
-                let mid=l;
-                mid<r;
-                mid++
-            ){
-
-                const left =
-                    dp[l][mid];
-
-                const right =
-                    dp[mid+1][r];
-
-                for(
-                    const A
-                    of left.values()
-                ){
-
-                    for(
-                        const B
-                        of right.values()
-                    ){
-
-                        binary(
-                            A,
-                            B,
-                            dp[l][r]
-                        );
-
-                    }
-
-                }
-
-            }
-
-            const snapshot =
-                [
-                    ...dp[l][r]
-                    .values()
-                ];
-
-            for(
-                const e
-                of snapshot
-            ){
-
-                unary(
-                    e,
-                    dp[l][r]
-                );
-
-            }
-
-        }
-
-    }
-
-    // ------------------------
-    // 最終探索
-    // ------------------------
-
-    const root =
-        dp[0][N-1];
-
-    let answer =
-        null;
-
-    for(
-        const e
-        of root.values()
-    ){
-
-        if(
-            Math.abs(
-                e.value
-                - target
-            ) < EPS
-        ){
-
-            if(
-    answer === null ||
-    e.cost < answer.cost ||
-    (
-        e.cost === answer.cost &&
-        e.text.length < answer.text.length
+    .slice(
+     l,
+     r+1
     )
-){
+    .join("");
 
-                answer = e;
+   store(
+    dp[l][r],
+    new Expr(
+     Number(concat),
+     concat,
+     0
+    )
+   );
 
-            }
+  }
 
-        }
+ }
+
+ // 区間DP
+
+ for(
+  let len=2;
+  len<=N;
+  len++
+ ){
+
+  for(
+   let l=0;
+   l+len-1<N;
+   l++
+  ){
+
+   const r =
+    l+len-1;
+
+   if(
+    !dp[l][r]
+   ){
+
+    dp[l][r] =
+     new Map();
+
+   }
+
+   for(
+    let mid=l;
+    mid<r;
+    mid++
+   ){
+
+    const left =
+     dp[l][mid];
+
+    const right =
+     dp[mid+1][r];
+
+    for(
+     const A
+     of left.values()
+    ){
+
+     for(
+      const B
+      of right.values()
+     ){
+
+      binary(
+       A,
+       B,
+       dp[l][r]
+      );
+
+     }
 
     }
 
-    return answer;
+   }
+
+   const snapshot =
+    [
+     ...dp[l][r]
+     .values()
+    ];
+
+   for(
+    const e
+    of snapshot
+   ){
+
+    unary(
+     e,
+     dp[l][r]
+    );
+
+   }
+
+  }
+
+ }
+
+ const root =
+  dp[0][N-1];
+
+ const answers =
+  [];
+
+ for(
+  const e
+  of root.values()
+ ){
+
+  if(
+   Math.abs(
+    e.value-target
+   ) < EPS
+  ){
+
+   answers.push(e);
+
+  }
+
+ }
+
+ answers.sort(
+  (a,b)=>{
+
+   if(
+    a.cost !==
+    b.cost
+   ){
+
+    return (
+     a.cost
+     -
+     b.cost
+    );
+
+   }
+
+   return (
+    a.text.length
+    -
+    b.text.length
+   );
+
+  }
+ );
+
+ if(
+  answers.length
+ )
+ {
+
+  return answers[0];
+
+ }
+
+ return null;
 
 }
 
-function solve334(target,digits){
+// ------------------
+// UI
+// ------------------
 
-    return null;
+function runSearch(){
+
+ const target =
+  Number(
+   document
+   .getElementById(
+    "target"
+   )
+   .value
+  );
+
+ const bags =
+  Number(
+   document
+   .getElementById(
+    "bags"
+   )
+   .value
+  );
+
+ if(
+  !Number.isInteger(
+   target
+  )
+  ||
+  target < 0
+ ){
+
+  document
+  .getElementById(
+   "status"
+  )
+  .textContent =
+  "エラー";
+
+  document
+  .getElementById(
+   "expr"
+  )
+  .textContent =
+  "自然数を入力してください";
+
+  return;
+
+ }
+
+ document
+ .getElementById(
+  "status"
+ )
+ .textContent =
+ "探索中...";
+
+ setTimeout(()=>{
+
+  const digits =
+   createDigits(
+    bags
+   );
+
+  const answer =
+   solve334(
+    target,
+    digits
+   );
+
+  if(answer){
+
+   document
+   .getElementById(
+    "status"
+   )
+   .textContent =
+   "発見";
+
+   document
+   .getElementById(
+    "value"
+   )
+   .textContent =
+   target;
+
+   document
+   .getElementById(
+    "expr"
+   )
+   .textContent =
+   answer.text;
+
+   let meta =
+    `Bag数:${bags} `
+    +
+    `Cost:${answer.cost}`;
+
+   if(
+    answer.text
+    ===
+    "33%4"
+   ){
+
+    meta +=
+    " 🐯 33-4";
+
+   }
+
+   document
+   .getElementById(
+    "meta"
+   )
+   .textContent =
+   meta;
+
+  }else{
+
+   document
+   .getElementById(
+    "status"
+   )
+   .textContent =
+   "未発見";
+
+   document
+   .getElementById(
+    "expr"
+   )
+   .textContent =
+   "探索範囲内では見つかりませんでした";
+
+  }
+
+ },10);
 
 }
 
