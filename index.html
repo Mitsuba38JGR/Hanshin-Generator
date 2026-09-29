@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>334 Expression Solver</title>
+
+<style>
+body{
+    background:#f5f9ff;
+    font-family:"Segoe UI",sans-serif;
+    margin:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+}
+
+.container{
+    width:700px;
+    max-width:90%;
+    background:white;
+    border-radius:12px;
+    padding:30px;
+    box-shadow:0 5px 20px rgba(0,0,0,.1);
+}
+
+h1{
+    color:#1a73e8;
+    margin-top:0;
+}
+
+.row{
+    display:flex;
+    gap:10px;
+}
+
+input{
+    flex:1;
+    padding:12px;
+    font-size:18px;
+}
+
+button{
+    background:#1a73e8;
+    color:white;
+    border:none;
+    padding:12px 24px;
+    cursor:pointer;
+    border-radius:6px;
+}
+
+button:hover{
+    background:#1557b0;
+}
+
+.result{
+    margin-top:20px;
+    padding:15px;
+    background:#eef5ff;
+    border-left:4px solid #1a73e8;
+    min-height:60px;
+    white-space:pre-wrap;
+}
+
+.value{
+    font-size:22px;
+    color:#1a73e8;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>334 Expression Solver</h1>
+
+<div class="row">
+<input id="target" type="number" placeholder="自然数を入力">
+<button onclick="search()">検索</button>
+</div>
+
+<div id="result" class="result">
+式がここに表示されます
+</div>
+
+</div>
+
+<script>
+
+function search(){
+
+    const target = Number(document.getElementById("target").value);
+
+    if(!Number.isInteger(target) || target < 0){
+        result.textContent = "自然数を入力してください";
+        return;
+    }
+
+    const resultBox = document.getElementById("result");
+
+    const bases = [
+        {v:3,e:"3"},
+        {v:3,e:"3"},
+        {v:4,e:"4"},
+        {v:33,e:"33"},
+        {v:34,e:"34"},
+        {v:334,e:"334"}
+    ];
+
+    const seen = new Map();
+
+    function tryStore(value, expr){
+        if(!Number.isFinite(value)) return;
+
+        value = Math.round(value*1e9)/1e9;
+
+        if(!seen.has(value)){
+            seen.set(value,expr);
+        }
+    }
+
+    for(const a of bases){
+
+        tryStore(a.v,a.e);
+
+        for(const b of bases){
+
+            tryStore(a.v+b.v,
+                `(${a.e}+${b.e})`);
+
+            tryStore(a.v-b.v,
+                `(${a.e}-${b.e})`);
+
+            tryStore(a.v*b.v,
+                `(${a.e}*${b.e})`);
+
+            if(b.v!==0){
+                tryStore(a.v/b.v,
+                    `(${a.e}/${b.e})`);
+
+                tryStore(a.v%b.v,
+                    `(${a.e}%${b.e})`);
+            }
+        }
+    }
+
+    if(seen.has(target)){
+
+        const expr = seen.get(target);
+
+        resultBox.innerHTML =
+        `<div class="value">${target}</div>
+        ${expr}`;
+
+    }else{
+
+        resultBox.textContent =
+        "現在の探索範囲では見つかりませんでした";
+    }
+}
+
+</script>
+
+</body>
+</html>
